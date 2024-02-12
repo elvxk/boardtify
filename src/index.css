@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: "Chalk";
+  src: url("./assets/fonts/ChalkBoard.ttf");
+}
+.board {
+  background-image: url("./assets/board.webp");
+  background-attachment: fixed;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
