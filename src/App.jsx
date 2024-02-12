@@ -144,7 +144,7 @@ const App = () => {
 
         <p className="font-chalk text-white mt-4 text-2xl">Hii.. {profile}</p>
         <p className="font-chalk text-white text-lg">
-          These are the
+          These are your
           {limit == 10 && " 10 "}
           {limit == 25 && " 25 "}
           {limit == 50 && " 50 "}
