@@ -148,7 +148,7 @@ const App = () => {
           {limit == 10 && " 10 "}
           {limit == 25 && " 25 "}
           {limit == 50 && " 50 "}
-          most popular tracks popular song{" "}
+          most popular tracks
           {timeRange == "short_term" && "last month"}
           {timeRange == "medium_term" && "last 6 months"}
           {timeRange == "long_term" && "all times"}
