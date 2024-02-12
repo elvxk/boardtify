@@ -218,6 +218,21 @@ const App = () => {
         >
           Logout
         </a>
+        <a
+          href={REDIRECT_URI}
+          target="_blank"
+          className="font-chalk text-white text-xl flex gap-2 text-center container mx-auto px-6 items-center justify-center mb-1"
+        >
+          <span className="border-b-2">boardtify.vercel.app</span>
+        </a>
+
+        <a
+          href="https://sandri.my.id"
+          target="_blank"
+          className="font-chalk text-white text-sm flex gap-2 text-center container mx-auto px-6 items-end h-full justify-center"
+        >
+          made with love ❤ by elvxk
+        </a>
       </div>
     </>
   );
