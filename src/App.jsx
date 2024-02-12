@@ -149,9 +149,9 @@ const App = () => {
           {limit == 25 && " 25 "}
           {limit == 50 && " 50 "}
           most popular tracks
-          {timeRange == "short_term" && "last month"}
-          {timeRange == "medium_term" && "last 6 months"}
-          {timeRange == "long_term" && "all times"}
+          {timeRange == "short_term" && " last month"}
+          {timeRange == "medium_term" && " last 6 months"}
+          {timeRange == "long_term" && " all times"}
         </p>
 
         <div className="w-full border-b-2 border-dashed my-2"></div>
