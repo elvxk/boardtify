@@ -1,82 +1,74 @@
-// App.js
 import React, { useState, useEffect } from "react";
-import axios from "axios";
+import { getName, getTopTracks } from "./api";
 import { FaSpotify } from "react-icons/fa6";
-import qr from "./assets/qr.webp";
-import { getProfile } from "./api";
 import { TbMusicHeart } from "react-icons/tb";
+import qr from "./assets/qr.webp";
 
 const CLIENT_ID = import.meta.env.VITE_CLIENT_ID;
-const CLIENT_SECRET = import.meta.env.VITE_CLIENT_SECRET;
 const REDIRECT_URI = import.meta.env.VITE_REDIRECT_URI;
-const SCOPES = ["user-top-read"];
+const SPACE_DELIMITER = "%20";
+const SCOPES = ["user-top-read", "user-read-private", "user-read-email"];
+const SCOPE_URL_PARAM = SCOPES.join(SPACE_DELIMITER);
 
 const App = () => {
-  const [accessToken, setAccessToken] = useState("");
+  const [token, setToken] = useState("");
   const [topTracks, setTopTracks] = useState([]);
   const [timeRange, setTimeRange] = useState("short_term");
   const [limit, setLimit] = useState(10);
   const [currentDate, setCurrentDate] = useState(getDate());
-  const [profile, setProfile] = useState([]);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [profile, setProfile] = useState("");
 
   useEffect(() => {
-    const fetchAccessToken = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const code = params.get("code");
+    const intervalId = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
 
-      if (code) {
-        try {
-          const response = await axios.post(
-            "https://accounts.spotify.com/api/token",
-            {
-              grant_type: "authorization_code",
-              code: code,
-              redirect_uri: REDIRECT_URI,
-              client_id: CLIENT_ID,
-              client_secret: CLIENT_SECRET,
-            },
-            {
-              headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-              },
-            }
-          );
-          setAccessToken(response.data.access_token);
-        } catch (error) {
-          console.error("Error fetching access token: ", error);
-        }
-      }
-    };
+    return () => clearInterval(intervalId);
+  }, []);
 
-    fetchAccessToken();
+  const formattedTime = currentTime.toLocaleTimeString(navigator.language, {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+
+  useEffect(() => {
+    if (window.location.hash) {
+      const { access_token, expires_in, token_type } = getParams(
+        window.location.hash
+      );
+      localStorage.clear();
+      localStorage.setItem("accessToken", access_token);
+      localStorage.setItem("tokenType", token_type);
+      localStorage.setItem("expiresIn", expires_in);
+    }
+    setToken(localStorage.getItem("accessToken"));
   }, []);
 
   useEffect(() => {
-    const fetchTopTracks = async () => {
-      if (accessToken) {
-        try {
-          const response = await axios.get(
-            `https://api.spotify.com/v1/me/top/tracks?time_range=${timeRange}&limit=${limit}`,
-            {
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-              },
-            }
-          );
-          setTopTracks(response.data.items);
-        } catch (error) {
-          console.error("Error fetching top tracks: ", error);
-        }
-      }
-    };
-
-    fetchTopTracks();
-    if (accessToken) {
-      getProfile({ token: accessToken }, (data) => {
-        setProfile(data.display_name);
-      });
+    if (token) {
+      getName(token)
+        .then((result) => {
+          setProfile(result);
+        })
+        .catch((e) => {
+          console.log(e);
+        });
     }
-  }, [accessToken, timeRange, limit]);
+  }, [token]);
+
+  useEffect(() => {
+    if (token) {
+      getTopTracks(token, limit, timeRange)
+        .then((result) => {
+          setTopTracks(result.items);
+        })
+        .catch((e) => {
+          console.log(e);
+        });
+    }
+  }, [token, limit, timeRange]);
 
   const handleTimeRangeChange = (event) => {
     setTimeRange(event.target.value);
@@ -85,11 +77,21 @@ const App = () => {
     setLimit(event.target.value);
   };
 
+  const handleLogin = () => {
+    window.location = `https://accounts.spotify.com/authorize?client_id=${CLIENT_ID}&redirect_uri=${REDIRECT_URI}&scope=${SCOPE_URL_PARAM}&response_type=token&show_dialog=true`;
+  };
+
+  const handleLogout = () => {
+    setToken("");
+    window.localStorage.clear();
+    window.location = `${REDIRECT_URI}`;
+  };
+
   return (
     <>
       <div
         className={`${
-          !accessToken ? "flex" : "hidden"
+          !token ? "flex" : "hidden"
         } flex-col justify-center items-center min-h-screen`}
       >
         <div className="items-center flex justify-center flex-col">
@@ -102,15 +104,14 @@ const App = () => {
             all the times you have used Spotify
           </p>
         </div>
-        <a
-          href={`https://accounts.spotify.com/authorize?client_id=${CLIENT_ID}&response_type=code&redirect_uri=${encodeURIComponent(
-            REDIRECT_URI
-          )}&scope=${encodeURIComponent(SCOPES.join(" "))}`}
+        <button
+          onClick={handleLogin}
           className="font-chalk flex gap-2 justify-center items-center rounded-full text-white text-xl p-4 border-2 hover:scale-95 transition-all my-6"
         >
           <FaSpotify />
           <span className="mt-1">LOGIN WITH SPOTIFY</span>
-        </a>
+        </button>
+
         <a
           href={REDIRECT_URI}
           target="_blank"
@@ -128,17 +129,17 @@ const App = () => {
         </a>
       </div>
 
-      <div
-        className={`${
-          !accessToken ? "hidden" : ""
-        } container mx-auto px-6 py-6`}
-      >
+      <div className={`${!token ? "hidden" : ""} container mx-auto px-6 py-6`}>
         <div className="flex items-center justify-between text-center">
           <h1 className="font-chalk text-white text-xl flex gap-2">
             <TbMusicHeart />
             Boardtify
           </h1>
-          <p className="font-chalk text-white">{currentDate}</p>
+          <p className="font-chalk text-white">
+            {currentDate}
+            {" - "}
+            {formattedTime}
+          </p>
         </div>
         <div className="w-full border-b-2 my-4"></div>
 
@@ -212,12 +213,12 @@ const App = () => {
             <option value={50}>50 items</option>
           </select>
         </div>
-        <a
+        <button
           className="mx-auto my-6 font-chalk border-2 flex gap-2 justify-center items-center rounded-full text-white text-xl p-2 w-1/2 lg:w-1/4 hover:scale-95 transition-all"
-          href="/"
+          onClick={handleLogout}
         >
           Logout
-        </a>
+        </button>
         <a
           href={REDIRECT_URI}
           target="_blank"
@@ -238,12 +239,23 @@ const App = () => {
   );
 };
 
-function getDate() {
+const getDate = () => {
   const today = new Date();
   const month = today.getMonth() + 1;
   const year = today.getFullYear();
   const date = today.getDate();
   return `${date}/${month}/${year}`;
-}
+};
+
+const getParams = (hash) => {
+  const stringAfterHastag = hash.substring(1);
+  const paramsUrl = stringAfterHastag.split("&");
+  const paramsSplitUp = paramsUrl.reduce((accumulater, currentValue) => {
+    const [key, value] = currentValue.split("=");
+    accumulater[key] = value;
+    return accumulater;
+  }, {});
+  return paramsSplitUp;
+};
 
 export default App;
